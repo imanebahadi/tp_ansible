@@ -1,6 +1,6 @@
 # TP - Déploiement automatisé avec Ansible
 
-UE : LIFRWMécaniqueSRS-CSVSRS-DCSRS-RATIW-ASBDTIW-CSV
+UE : LIFRWMécaniqueSRS-CSVSRS-DCSRS-RATIW-ASBDTIW-CSV 
 Date limite de rendu : 09/02/2024 23h50 sur Gitlab
 
 # Objectif :
