@@ -1,0 +1,5 @@
+
+# vous pouvez uncomment en fonction de votre avancement
+- import_playbook: front.yaml
+- import_playbook: db.yaml
+- import_playbook: worker.yaml

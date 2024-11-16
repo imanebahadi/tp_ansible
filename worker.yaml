@@ -1,0 +1,7 @@
+- hosts: worker
+  become: yes
+  roles:
+    - role: docker_ucbl1
+      vars:
+        docker_users:
+          - ubuntu

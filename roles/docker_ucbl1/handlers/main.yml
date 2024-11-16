@@ -1,0 +1,5 @@
+- name: redémarrer postgresql
+  systemd:
+    name: postgresql
+    state: restarted
+  become: yes

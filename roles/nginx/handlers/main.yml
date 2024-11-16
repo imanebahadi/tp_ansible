@@ -1,0 +1,8 @@
+
+- name: Restart NGINX
+  become: true
+  systemd:
+    name: nginx
+    state: restarted
+    daemon_reload: yes
+  

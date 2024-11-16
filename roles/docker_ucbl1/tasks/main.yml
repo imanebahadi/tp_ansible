@@ -1,0 +1,51 @@
+- name: Installer python3-pip
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: yes
+
+
+- name: Installer la librairie Docker pour Python
+  ansible.builtin.pip:
+    name: docker
+
+- name: Read a kv2 secret with the default mount point
+  ansible.builtin.set_fact:
+    response: "{{ lookup('community.hashi_vault.vault_kv2_get', 'dc-fraude/tp3', url='https://vault-dc.info.univ-lyon1.fr').secret.pgadminpass }}"
+
+- name: Gather facts about the remote machine
+  ansible.builtin.setup:
+    gather_subset: network
+  register: gathered_facts
+  delegate_to: db
+
+- name: Extract IP address from gathered facts
+  ansible.builtin.set_fact:
+    ip_db: "{{ gathered_facts.ansible_facts.ansible_default_ipv4.address }}"
+
+- name: Template a file 
+  ansible.builtin.template:
+    src: ../templates/config_local.py.j2
+    dest: /home/ubuntu/config_local.py
+  vars:
+    username: pgadminuser
+    password:  "{{ response }}"
+    host: "{{ ip_db}}"
+    port: 5432
+    database: pgadmin
+
+
+- name: Lancer le container Docker pgadmin4
+  community.docker.docker_container:
+    name: pgadmin4
+    image: dpage/pgadmin4:6.17
+    mounts:
+      - type: bind
+        source: /home/ubuntu/config_local.py
+        target: /pgadmin4/config_local.py
+    ports:
+      - "80:80"
+    env:
+      PGADMIN_DEFAULT_EMAIL: "imane.bahadi@etu.univ-lyon1.fr"
+      PGADMIN_DEFAULT_PASSWORD: "{{ response }}"  # Utilisez le mot de passe depuis Vault
+    

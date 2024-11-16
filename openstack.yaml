@@ -1,0 +1,11 @@
+plugin: openstack.cloud.openstack
+expand_hostvars: no
+fail_on_errors: yes
+# permet de créer des groupes pour le playbook d'où l'importance des metadonnées dans le TP2
+keyed_groups:
+  - key: openstack.metadata.machine_type
+    msg:
+      - "Secret: {{ openstack.metadata.machine_type }}"
+    separator: ""
+private: yes
+

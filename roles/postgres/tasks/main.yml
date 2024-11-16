@@ -1,0 +1,82 @@
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600  # Cache valide pour 1 heure
+
+- name: Configurer PostgreSQL et pgAdmin
+  become: yes  # Devenir root pour les tâches d'installation et de configuration
+  block:
+    - name: Install Postgresql
+      ansible.builtin.apt:
+        name: 
+        - python3-psycopg2
+        - postgresql
+        state: present
+
+    - name: Read a kv2 secret with the default mount point
+      ansible.builtin.set_fact:
+        response: "{{ lookup('community.hashi_vault.vault_kv2_get', 'dc-fraude/tp3', url='https://vault-dc.info.univ-lyon1.fr',  auth_method='token', token='hvs.CAESIIEBGF2a73-m58UYc6Dubh6_whkl_Dr9KTcz7aY_47g0Gh4KHGh2cy5SczlvaUlDUkJBV2JzejFDMXFpaGdac1U') }}"
+
+    - name: Display the results
+      ansible.builtin.debug:
+        msg:
+          - "Secret: {{ response.secret.pgadminpass }}"
+    
+
+    - name: Gather facts about the remote machine
+      ansible.builtin.setup:
+        gather_subset: network
+      register: gathered_facts
+      delegate_to: worker
+
+    - name: Extract IP address from gathered facts
+      ansible.builtin.set_fact:
+        ip_worker: "{{ gathered_facts.ansible_facts.ansible_default_ipv4.address }}"
+
+    - block:
+        - name: Create user pgadminuser
+          community.postgresql.postgresql_user:
+            db: postgres
+            name: pgadminuser
+            password: "{{ response.secret.pgadminpass }}"
+
+        - name: Create a new database with name "pgadmin"
+          community.postgresql.postgresql_db:
+            name: pgadmin
+            owner: pgadminuser
+          
+        - name: GRANT ALL PRIVILEGES ON DATABASE pgadmin TO pgadminuser
+          community.postgresql.postgresql_privs:
+            db: pgadmin
+            privs: ALL
+            type: database
+            role: pgadminuser
+
+        - name: Grant users pgadminuser access to database pgadmin
+          community.postgresql.postgresql_pg_hba:
+            dest: /etc/postgresql/14/main/pg_hba.conf
+            contype: host
+            users: pgadminuser
+            source: "{{ ip_worker }}"
+            databases: pgadmin
+            method: scram-sha-256
+            create: true
+
+      become_user: postgres
+      vars:
+        ansible_ssh_pipelining: true
+
+    
+
+- name: PostgreSQL listen on all adresses
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/14/main/postgresql.conf
+    line: "listen_addresses = '*'"
+    create: yes
+  become: yes
+  notify: redémarrer postgresql
+
+
+
+

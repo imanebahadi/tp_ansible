@@ -1,0 +1,49 @@
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install NGINX
+  apt:
+    name: nginx
+
+- name: Gather facts about the remote machine
+  ansible.builtin.setup:
+    gather_subset: network
+  register: gathered_facts
+  delegate_to: worker
+
+- name: Extract IP address from gathered facts
+  ansible.builtin.set_fact:
+    ip_worker: "{{ gathered_facts.ansible_facts.ansible_default_ipv4.address }}"
+
+
+- name: Déployer le fichier de configuration NGINX
+  ansible.builtin.template:
+    src: ../templates/nginx.conf.j2
+    dest: /etc/nginx/sites-available/nginx.conf
+  notify: Restart NGINX
+  vars:
+    ip_backend: "{{ ip_worker}}"
+
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/nginx.conf
+    dest: /etc/nginx/sites-enabled/nginx.conf
+    owner: root
+    group: root
+    state: link
+  notify: Restart NGINX
+
+
+- name: Remove default NGINX site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart NGINX
+
+
+
+
+

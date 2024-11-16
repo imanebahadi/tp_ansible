@@ -1,0 +1,8 @@
+---
+collections:
+  - name: openstack.cloud
+
+roles:
+  - name: docker_ucbl1
+    src: git+https://forge.univ-lyon1.fr/ansible/docker_ucbl1.git
+...

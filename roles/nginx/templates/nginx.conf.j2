@@ -1,0 +1,21 @@
+upstream {{ upstream_name }} {
+    hash $remote_addr consistent;
+    server {{ ip_backend }};
+}
+
+{% for server in servers %}
+server {
+    listen {{ server.port }};
+
+    {% for location in server.locations %}
+    location /{{ location.name }} {
+        proxy_set_header X-Script-Name /{{ location.name }};
+        proxy_set_header X-Scheme $scheme;
+        proxy_set_header Host $host;
+        proxy_pass http://{{ upstream_name }};
+        proxy_pass_header    Set-Cookie;
+        proxy_redirect off;
+    }
+    {% endfor %}
+}
+{% endfor %}

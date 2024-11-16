@@ -1,0 +1,6 @@
+- name: front
+  hosts: front
+  roles:
+    - nginx
+  become: yes
+  become_user: root

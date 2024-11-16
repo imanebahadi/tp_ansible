@@ -1,0 +1,6 @@
+
+upstream_name: pg_backend
+servers:
+  - port: 80
+    locations:
+      - name: pgadmin4

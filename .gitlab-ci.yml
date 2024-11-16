@@ -1,0 +1,35 @@
+image: admindptinfo/dc:full
+
+
+variables:
+  VAULT_ADDR: https://vault-dc.info.univ-lyon1.fr
+  OS_AUTH_URL: https://cloud-info.univ-lyon1.fr:5000/v3
+  OS_AUTH_TYPE: v3applicationcredential
+  OS_APPLICATION_CREDENTIAL_ID: 71f9fb1cbe5547c2b70096d45464e9d5
+  DC_GROUP: dc-fraude
+  SECRET_FIELD: secret
+  
+
+syntax:
+  stage: test
+  script:
+    - ansible-galaxy install -r requirements.yaml
+    - ansible-playbook --syntax-check $CI_COMMIT_REF_NAME.yaml
+deploy:
+  stage: deploy
+  script:
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=gitlab-ci jwt=$CI_JOB_JWT)"
+    - export NO_PROXY="$NO_PROXY,cloud-info.univ-lyon1.fr"
+    - export no_proxy="$no_proxy,cloud-info.univ-lyon1.fr"
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - python3 -m pip install openstacksdk==1.0.0
+    - PRIVATE_KEY=$(vault kv get -field=dc-tp3 kv/$DC_GROUP/$CI_PROJECT_NAME)
+    - export OS_APPLICATION_CREDENTIAL_SECRET=$(vault kv get -field=$SECRET_FIELD kv/$DC_GROUP/$CI_PROJECT_NAME)
+    - echo "$PRIVATE_KEY"| ssh-add -
+    - ansible-galaxy install -r requirements.yaml
+    - echo $CI_COMMIT_REF_NAME
+    - ansible-playbook -i openstack.yaml $CI_COMMIT_REF_NAME.yaml
+
